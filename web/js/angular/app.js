@@ -107,12 +107,13 @@ logViewer.directive('slideable', function () {
                     if (!content) content = target.querySelector('.slideable_content');
 
 
+                    //$(content).removeClass('hidden');
                     if(!attrs.expanded) {
+                        $(content).removeClass('hidden');
                         content.style.border = '1px solid rgba(0,0,0,0)';
                         var y = content.clientHeight;
                         content.style.border = 0;
                         target.style.height = y + 'px';
-                        $(content).removeClass('hidden');
                     } else {
                         target.style.height = '0px';
                         $(content).addClass('hidden');
