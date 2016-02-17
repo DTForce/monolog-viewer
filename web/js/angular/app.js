@@ -77,7 +77,7 @@ logViewer.directive('slideable', function () {
             compile: function (element, attr) {
                 // wrap tag
                 var contents = element.html();
-                element.html('<div class="slideable_content" style="margin:0 !important; padding:0 !important" >' + contents + '</div>');
+                element.html('<div class="slideable_content hidden" style="margin:0 !important; padding:0 !important" >' + contents + '</div>');
 
                 return function postLink(scope, element, attrs) {
                     // default properties
@@ -105,6 +105,8 @@ logViewer.directive('slideable', function () {
                 element.bind('click', function() {
                     if (!target) target = document.querySelector(attrs.slideToggle);
                     if (!content) content = target.querySelector('.slideable_content');
+
+                    $(content).removeClass('hidden');
 
                     if(!attrs.expanded) {
                         content.style.border = '1px solid rgba(0,0,0,0)';
