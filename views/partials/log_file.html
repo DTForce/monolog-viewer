@@ -7,11 +7,9 @@
         <td class="date">{{ formatDate(line.date.date) | date: config.date_format }}</td>
         <td class="message clearfix" ng-class="{'has-more': keys(line.context).length+keys(line.extra).length > 0}">
             {{ line.message }}
-            <div ng-if="keys(line.context).length+keys(line.extra).length > 0" class="context slideable" id="context-{{ id + 1 }}">
-                <table>
-                    <tr ng-repeat="(title, content) in line.context"><th>{{ title }}</th><td>{{ content|nl2br }}</td></tr>
-                    <tr ng-repeat="(title, content) in line.extra"><th>{{ title }}</th><td>{{ content|nl2br }}</td></tr>
-                </table>
+            <div ng-if="keys(line.context).length+keys(line.extra).length > 0" class="context slideable" id="context-{{ id + 1 }}" >
+                <div class="tree-wrapper" ng-bind-html="line.context | jsonTree"></div>
+                <div class="tree-wrapper" ng-bind-html="line.extra | jsonTree"></div>
             </div>
         </td>
         <td class="logger" ng-if="config.display_logger"><i class="fa fa-tag"></i> {{ line.logger }}</td>
