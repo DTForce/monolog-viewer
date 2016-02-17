@@ -7,8 +7,10 @@ define('CONFIG_FILE', APP_PATH . '/config/config.yml');
 define('PASSWD_DIR', APP_PATH . '/config/secure');
 define('PASSWD_FILE', PASSWD_DIR . '/passwd');
 define('VENDOR_PATH', __DIR__ . '/vendor');
-define('BASE_URL', ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') .
-    '://' . $_SERVER['SERVER_NAME'] .
+define('IS_HTTPS', (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'));
+
+define('BASE_URL', (IS_HTTPS ? 'https' : 'http') .
+    '://' . $_SERVER['SERVER_NAME'] . (!IS_HTTPS && $_SERVER['SERVER_PORT'] !== 80 ? ':' .$_SERVER['SERVER_PORT'] : '') .
     str_replace('/index.php', '', $_SERVER['SCRIPT_NAME'])
 );
 define('WEB_URL', BASE_URL . '/web');

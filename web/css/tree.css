@@ -1,0 +1,14 @@
+span.tree-leaf-separator::after {
+    content: ":";
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+span.tree-leaf-value {
+    font-weight: bold;
+}
+
+div.tree-wrapper {
+    font-size: 10pt;
+    font-family: "Source Code Pro", monospace;
+}
