@@ -7,6 +7,5 @@
         </span>
 
     <li class="client">Utility</li>
-    {% if app.security.token and app.security.token.user %}<li id="logout"><a href="{{ path('logs_logout') }}"><i class="fa fa-sign-out fa-fw"></i> Logout</a></li>{% endif %}
-    <li><a href="javascript:void(0);" ng-click="clearCache()"><i class="fa fa-trash-o fa-fw"></i> Clear cache</a></li>
+      <li><a href="javascript:void(0);" ng-click="clearCache()"><i class="fa fa-trash-o fa-fw"></i> Clear cache</a></li>
 </ul>
