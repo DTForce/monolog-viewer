@@ -27,22 +27,33 @@ if(is_readable(CONFIG_FILE)) {
     Symfony\Component\Debug\ExceptionHandler::register(!$app['debug']);
     if(in_array($app['config']['timezone'], DateTimeZone::listIdentifiers())) date_default_timezone_set($app['config']['timezone']);
 }
+
 $app->register(new Silex\Provider\TwigServiceProvider(), array(
-        'twig.path' => APP_ROOT.'/views',
-        'twig.options' => array('debug' => $app['debug'])
-    ));
+	'twig.path' => APP_ROOT.'/views',
+	'twig.options' => array('debug' => $app['debug'])
+));
+
+$app->register(new Silex\Provider\ServiceControllerServiceProvider());
 $app->register(new Silex\Provider\SessionServiceProvider());
 $app->register(new Silex\Provider\UrlGeneratorServiceProvider());
+$app->register(new Silex\Provider\HttpFragmentServiceProvider());
+
+if ($app['debug']) {
+	$app->register(new Silex\Provider\WebProfilerServiceProvider(), array(
+		'profiler.cache_dir' => __DIR__.'/app/cache/profiler',
+		'profiler.mount_prefix' => '/_profiler', // this is the default
+	));
+}
 
 $app->get('/', function() use($app) {
         if(!is_readable(CONFIG_FILE)) {
-            throw new \Syonix\LogViewer\Exceptions\ConfigFileMissingException();
+            throw new Syonix\LogViewer\Exceptions\ConfigFileMissingException();
         }
         return $app->redirect($app['url_generator']->generate('logs'));
     })
     ->bind("home");
 
-$app->get('/login', function(\Symfony\Component\HttpFoundation\Request $request) use($app) {
+$app->get('/login', function(Symfony\Component\HttpFoundation\Request $request) use($app) {
         return $app['twig']->render('login.html.twig', array(
                 'create_success' => false,
                 'error'         => $app['security.last_error']($request),

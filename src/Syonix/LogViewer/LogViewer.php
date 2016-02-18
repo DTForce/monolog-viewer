@@ -22,7 +22,7 @@ class LogViewer
             if(count($client_logs) > 0) {
                 $client = new Client($client_name);
                 foreach ($client_logs as $log_name => $args) {
-                    $client->addLog(new LogFile($log_name, $client->getSlug(), $args));
+                    $client->addLog(new LogFileDefinition($log_name, $args));
                 }
                 $this->clients->add($client);
             }

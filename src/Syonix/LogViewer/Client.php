@@ -33,39 +33,36 @@ class Client {
         return $this->slug;
     }
 
-    public function addLog(LogFile $log) {
-        if(!$this->logs->contains($log)) {
-            $this->logs->add($log);
+    public function addLog(LogFileDefinition $log) {
+        if(!$this->logs->containsKey($log)) {
+            $this->logs->set($log->getSlug(), $log);
         }
         return $this;
     }
 
-    public function removeLog(LogFile $log) {
-        if($this->logs->contains($log)) {
-            $this->logs->remove($log);
-        }
-        return $this;
-    }
 
+    /**
+     * @return LogFileDefinition[]
+     */
     public function getLogs() {
-        return $this->logs;
+        return $this->logs->toArray();
     }
 
     /**
      * @param $slug
-     * @return LogFile|null
+     * @return LogFileDefinition|null
      */
     public function getLog($slug)
     {
-        foreach($this->logs as $log) {
-            if($log->getSlug() == $slug) return $log;
+        if (!$this->logs->containsKey($slug)) {
+            return null;
         }
-        return null;
+        return $this->logs->get($slug);
     }
 
 
     /**
-     * @return LogFile|null
+     * @return LogFileDefinition|null
      */
     public function getFirstLog()
     {

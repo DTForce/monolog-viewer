@@ -32,11 +32,11 @@ class ApiController
 				'url' => BASE_URL.'/api/logs/'.$client->getSlug()
 			);
 			if ($returnLogs) {
-				foreach ($client->getLogs() as $log) {
+				foreach ($client->getLogs() as  $log) {
 					$element['logs'][] = array(
 						'name' => $log->getName(),
 						'slug' => $log->getSlug(),
-						'url' => BASE_URL.'/api/logs/'.$client->getSlug().'/'.$log->getSlug()
+						'url' => BASE_URL . '/api/logs/' . $client->getSlug() . '/' . $log->getSlug()
 					);
 				}
 			}
@@ -47,15 +47,6 @@ class ApiController
 		);
 
 		return $app->json($response);
-	}
-
-	public function clearCache(Silex\Application $app) {
-		$cache = new \Syonix\LogViewer\Cache(new Local(APP_PATH.'/cache'));
-		$cache->emptyCache();
-
-		return $app->json(array(
-			'message' => 'success'
-		));
 	}
 
 	public function logsClient(Silex\Application $app, $clientSlug) {
@@ -99,20 +90,23 @@ class ApiController
 			return $app->json($error, 404);
 		}
 
-		$log = $client->getLog($logSlug);
-		if(null === $log) {
+		$logDefinition = $client->getLog($logSlug);
+		if(null === $logDefinition) {
 			$error = array('message' => 'The log file was not found.');
 			return $app->json($error, 404);
 		}
 
-		$adapter = new \League\Flysystem\Adapter\Local(APP_PATH.'/cache');
-		$cache = new \Syonix\LogViewer\Cache($adapter, $app['config']['cache_expire'], $app['config']['reverse_line_order']);
+		$cache = new \Syonix\LogViewer\LogFileFactory();
+		$log = $cache->createLogFile($logDefinition);
 		$log->setFilter($filterLogger, $filterLevel, $filterText);
 		$log->setLimit($limit);
 		$log->setOffset($offset);
-		$log = $cache->get($log);
 
-		$logUrl = BASE_URL.'/api/logs/'.$client->getSlug().'/'.$log->getSlug();
+		if ($app['config']['reverse_line_order']) {
+			$log->reverseLines();
+		}
+
+		$logUrl = BASE_URL.'/api/logs/'.$client->getSlug().'/'.$logDefinition->getSlug();
 		$totalLines = $log->countLines();
 
 		$prevPageUrl = $offset > 0 ? ($offset-$limit < 0 ? $logUrl.'?limit='.$limit.'&offset=0' : $logUrl.'?limit='.$limit.'&offset='.($offset-$limit)) : null;

@@ -2,6 +2,7 @@
 namespace Syonix\LogViewer;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Dubture\Monolog\Parser\LineLogParser;
 use Monolog\Logger;
 use Psr\Log\InvalidArgumentException;
 use Syonix\Util\StringUtil;
@@ -10,11 +11,12 @@ use Syonix\Util\StringUtil;
 class LogFile
 {
 
-	protected $name;
+	const PATTERN_NAME = "LogFile::pattern";
 
-	protected $slug;
-
-	protected $clientSlug;
+	/**
+	 * @var LogFileDefinition
+	 */
+	protected $logFileDefinition;
 
 	protected $args;
 
@@ -37,14 +39,30 @@ class LogFile
 	 */
 	private $limit = null;
 
+	/**
+	 * @var LineLogParser
+	 */
+	private $logParser;
 
-	public function __construct($name, $clientSlug, $args)
+	/**
+	 * @var bool
+	 */
+	private $reverse = false;
+
+	private $entries;
+
+	private $filterLogger = null;
+
+	private $filterLevel = 0;
+
+	private $filterText = null;
+
+
+	public function __construct(array $lines, LogFileDefinition $logFileDefinition, LineLogParser $logParser)
 	{
-		$this->name = $name;
-		$this->slug = StringUtil::toAscii($name);
-		$this->clientSlug = StringUtil::toAscii($clientSlug);
-		$this->args = $args;
-		$this->lines = new ArrayCollection();
+		$this->lines = $lines;
+		$this->logFileDefinition = $logFileDefinition;
+		$this->logParser = $logParser;
 	}
 
 
@@ -60,40 +78,31 @@ class LogFile
 	}
 
 
-	public function addLine($line)
-	{
-		return $this->lines->add($line);
-	}
-
-
 	public function getLine($line)
 	{
 		return $this->lines[intval($line)];
 	}
 
 
-	public function getArgs()
-	{
-		return $this->args;
-	}
-
-
 	public function setFilter($logger = null, $level = 0, $text = null)
 	{
-		$this->filter['logger'] = $logger;
-		$this->filter['level'] = $level;
-		$this->filter['text'] = $text;
+		$this->entries = null;
+		$this->filterLogger = $logger;
+		$this->filterLevel = $level;
+		$this->filterText = $text;
 	}
 
 
 	public function setLimit($limit = null)
 	{
+		$this->entries = null;
 		$this->limit = $limit;
 	}
 
 
 	public function setOffset($offset = 0)
 	{
+		$this->entries = null;
 		$this->offset = $offset;
 	}
 
@@ -118,38 +127,46 @@ class LogFile
 
 	public function reverseLines()
 	{
-		$this->lines = new ArrayCollection(array_reverse($this->lines->toArray(), false));
+		$this->reverse = true;
 	}
 
 
 	public function countLines()
 	{
-		return count($this->getLines());
+		return count($this->lines);
 	}
 
 
 	public function getLines()
 	{
 		$lines = $this->lines;
-		$filter = $this->filter;
-		$logger = isset($filter['logger']) ? $filter['logger'] : null;
-		$minLevel = isset($filter['level']) ? $filter['level'] : 0;
-		$text = (isset($filter['text']) && $filter['text'] != '') ? $filter['text'] : null;
+		if ($this->entries === null) {
+			$entries = [];
+			$entryCount = 0;
+			$totalLines = count($lines);
+			$limit = $this->getLimit() === null ? $totalLines : $this->getLimit();
+			for ($pos = 0; $entryCount < $limit && $pos < $totalLines; $pos++) {
+				if ($this->getOffset() > $pos) {
+					continue;
+				}
 
-		foreach ($lines as $line) {
-			if (
-				! static::logLineHasLogger($logger, $line)
-				|| ! static::logLineHasMinLevel($minLevel, $line)
-				|| ! static::logLineHasText($text, $line)
-			) {
-				$lines->removeElement($line);
+				$line = $lines[$this->reverse ? count($lines) - $pos - 1 : $pos];
+				$entry = $this->logParser->parse($line, 0, LogFile::PATTERN_NAME);
+				if (
+					count($entry) > 0 &&
+					static::logLineHasLogger($this->filterLogger, $entry) &&
+					static::logLineHasMinLevel($this->filterLevel, $entry) &&
+					static::logLineHasText($this->filterText, $entry)
+				) {
+					$this->addLogger($entry['logger']);
+					$entries[] = $entry;
+					$entryCount++;
+				}
 			}
+			$this->entries = $entries;
 		}
 
-		if (null !== $this->limit) {
-			return array_values($lines->slice($this->offset, $this->limit));
-		}
-		return array_values($lines->toArray());
+		return $this->entries;
 	}
 
 
@@ -235,12 +252,6 @@ class LogFile
 	}
 
 
-	public function getSlug()
-	{
-		return $this->slug;
-	}
-
-
 	public function getLoggers()
 	{
 		return array_keys($this->loggers);
@@ -253,21 +264,9 @@ class LogFile
 	}
 
 
-	public function addLogger($logger)
+	private function addLogger($logger)
 	{
 		return $this->loggers[$logger];
-	}
-
-
-	public function getClientSlug()
-	{
-		return $this->clientSlug;
-	}
-
-
-	public function getIdentifier()
-	{
-		return $this->clientSlug . '/' . $this->slug;
 	}
 
 }
