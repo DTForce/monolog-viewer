@@ -1,4 +1,7 @@
 <?php
+use Symfony\Component\Debug\ErrorHandler;
+
+
 require_once('bootstrap.php');
 
 define('APP_ROOT', __DIR__);
@@ -55,6 +58,8 @@ $app->get('/logs{path}', function() use($app) { return $app['twig']->render('log
     ->bind("logs")
     ->value('path', FALSE)
     ->assert("path", ".*");
+
+ErrorHandler::register();
 
 $app->error(function (\Syonix\LogViewer\Exceptions\ConfigFileMissingException $e, $code) use($app) {
     return $app['twig']->render('error/config_file_missing.html.twig');

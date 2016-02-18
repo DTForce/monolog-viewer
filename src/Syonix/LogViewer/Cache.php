@@ -22,36 +22,12 @@ class Cache
 
     public function get(LogFile $logFile)
     {
-        if($this->cache->has($this->getFilename($logFile))) {
-            $timestamp = $this->cache->getTimestamp($this->getFilename($logFile));
-            if($timestamp > (time() - $this->expire)) {
-                return $this->readCache($logFile);
-            } else {
-                $this->deleteCache($logFile);
-            }
-        }
-
         return $this->loadSource($logFile);
     }
 
     private function getFilename(LogFile $logFile)
     {
-        return base64_encode($logFile->getIdentifier());
-    }
-
-    private function writeCache(LogFile $logFile)
-    {
-        $this->cache->write($this->getFilename($logFile), serialize($logFile));
-    }
-
-    private function readCache(LogFile $logFile)
-    {
-        return unserialize($this->cache->get($this->getFilename($logFile))->read());
-    }
-
-    private function deleteCache(LogFile $logFile)
-    {
-        $this->cache->delete($this->getFilename($logFile));
+        return base64_encode($logFile->getIdentifier() . '_of_' . $logFile->getOffset() . '_lim_' . $logFile->getLimit());
     }
 
     public function emptyCache()
@@ -86,16 +62,24 @@ class Cache
 
         $file = $filesystem->read($args['path']);
         $lines = explode("\n", $file);
+
+        unset($file); // deallocate memory
+
         $parser = new LineLogParser();
+        $pattern = 'default';
         if(isset($args['pattern'])) {
-            $hasCustomPattern = true;
+            $pattern = 'custom';
             $parser->registerPattern('custom', $args['pattern']);
-        } else {
-            $hasCustomPattern = false;
         }
 
-        foreach ($lines as $line) {
-            $entry = ($hasCustomPattern ? $parser->parse($line, 0, 'custom') : $parser->parse($line, 0));
+        for ($pos = 0; $pos < ($logFile->getOffset() + $logFile->getLimit()); $pos++) {
+            if ($logFile->getOffset() > $pos) {
+                unset($lines[$pos]); // deallocate memory
+                continue;
+            }
+
+            $line = $lines[$pos];
+            $entry = $parser->parse($line, 0, $pattern);
             if (count($entry) > 0) {
                 if(!$logFile->hasLogger($entry['logger'])) {
                     $logFile->addLogger($entry['logger']);
@@ -104,8 +88,9 @@ class Cache
             }
         }
 
-        if($this->reverse) $logFile->reverseLines();
-        $this->writeCache($logFile);
+        if ($this->reverse) {
+            $logFile->reverseLines();
+        }
 
         return $logFile;
     }

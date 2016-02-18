@@ -34,6 +34,10 @@ class LogViewer
         return !$this->clients->isEmpty();
     }
 
+
+    /**
+     * @return Client[]
+     */
     public function getClients()
     {
         return $this->clients;
